@@ -1,0 +1,5 @@
+- id: yaml-reorder
+  name: Reorder YAML columns
+  entry: yaml-reorder
+  language: python
+  files: \.ya?ml\$
