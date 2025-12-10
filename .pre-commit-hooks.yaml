@@ -2,4 +2,5 @@
   name: Reorder YAML columns
   entry: yaml-reorder
   language: python
-  files: \.ya?ml\$
+  files: \.(sql|ya?ml)\$
+  pass_filenames: true
