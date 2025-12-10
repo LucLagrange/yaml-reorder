@@ -158,7 +158,6 @@ def reorder_yaml_columns(yaml_file: str, sql_columns: List[str]) -> bool:
 def main() -> None:
     """
     Main entry point for the script.
-
     Accepts either a SQL or YAML file path as command line argument,
     extracts columns from the SQL model, and reorders the corresponding
     YAML schema file to match.
@@ -198,10 +197,8 @@ def main() -> None:
         if not Path(sql_file).exists():
             print(f"Error: SQL file not found: {sql_file}", file=sys.stderr)
             sys.exit(1)
-
         if not Path(yaml_file).exists():
-            print(f"Warning: YAML file not found: {yaml_file}", file=sys.stderr)
-            print("Skipping (no schema file to reorder)", file=sys.stderr)
+            # Don't print warning, just exit silently (file might not have YAML yet)
             sys.exit(0)
 
         # Read SQL file
@@ -233,12 +230,13 @@ def main() -> None:
             was_reordered = reorder_yaml_columns(yaml_file, sql_columns)
             if was_reordered:
                 print(f"✓ Reordered {len(sql_columns)} columns in {yaml_file}")
-                sys.exit(1)  # Fail so user can review changes and re-commit
+                sys.exit(1)  # Exit with 1 so pre-commit shows it modified files
             else:
-                print(f"✓ Nothing to reorder in {yaml_file} (already in correct order)")
+                # Exit silently with success - already in correct order
+                sys.exit(0)
         except FileNotFoundError:
-            print(f"Error: YAML file not found: {yaml_file}", file=sys.stderr)
-            sys.exit(1)
+            # YAML file doesn't exist - that's okay
+            sys.exit(0)
         except yaml.YAMLError as e:
             print(f"Error: Invalid YAML in {yaml_file}: {e}", file=sys.stderr)
             sys.exit(1)
@@ -266,4 +264,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
