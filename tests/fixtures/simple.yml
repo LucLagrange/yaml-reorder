@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: users
+    columns:
+      - name: name
+        description: User's full name
+      - name: created_at
+        description: Account creation timestamp
+      - name: id
+        description: Primary key
+      - name: email
+        description: User email address
