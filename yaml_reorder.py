@@ -20,7 +20,7 @@ import argparse
 from typing import List, Dict, Any
 from pathlib import Path
 import sqlglot
-import yaml
+from ruamel.yaml import YAML
 
 DEFAULT_DIALECT = "bigquery"
 
@@ -71,6 +71,9 @@ def extract_sql_columns(sql: str, dialect: str) -> List[str]:
     return [col.alias_or_name for col in parsed.expressions]
 
 
+from ruamel.yaml import YAML
+
+
 def read_yaml_file(filepath: str) -> Dict[str, Any]:
     """
     Read and parse YAML file.
@@ -85,14 +88,18 @@ def read_yaml_file(filepath: str) -> Dict[str, Any]:
         FileNotFoundError: If file doesn't exist.
         yaml.YAMLError: If YAML is invalid.
     """
-    with open(filepath) as f:
-        return yaml.safe_load(f)
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.default_flow_style = False
+    yaml.width = 4096  # Prevent unwanted line wrapping
+
+    with open(filepath, "r") as f:
+        return yaml.load(f)
 
 
 def write_yaml_file(filepath: str, data: Dict[str, Any]) -> None:
     """
     Write data to YAML file.
-
     Preserves key order and uses block style for readability.
 
     Args:
@@ -102,8 +109,14 @@ def write_yaml_file(filepath: str, data: Dict[str, Any]) -> None:
     Raises:
         IOError: If file cannot be written.
     """
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.default_flow_style = False
+    yaml.width = 4096
+    yaml.indent(mapping=2, sequence=2, offset=0)
+
     with open(filepath, "w") as f:
-        yaml.dump(data, f, sort_keys=False, default_flow_style=False)
+        yaml.dump(data, f)
 
 
 def reorder_yaml_columns(yaml_file: str, sql_columns: List[str]) -> bool:
