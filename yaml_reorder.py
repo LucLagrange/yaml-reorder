@@ -71,9 +71,6 @@ def extract_sql_columns(sql: str, dialect: str) -> List[str]:
     return [col.alias_or_name for col in parsed.expressions]
 
 
-from ruamel.yaml import YAML
-
-
 def read_yaml_file(filepath: str) -> Dict[str, Any]:
     """
     Read and parse YAML file.
