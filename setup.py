@@ -11,6 +11,6 @@ setup(
     },
     install_requires=[
         'sqlglot',
-        'pyyaml',
+        'ruamel.yaml',
     ],
 )
