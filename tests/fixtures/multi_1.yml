@@ -1,0 +1,6 @@
+---
+models:
+    - name: users
+      columns:
+          - name: name
+          - name: id

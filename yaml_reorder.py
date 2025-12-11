@@ -158,14 +158,14 @@ def reorder_yaml_columns(yaml_file: str, sql_columns: List[str]) -> bool:
 def main() -> None:
     """
     Main entry point for the script.
-    Accepts either a SQL or YAML file path as command line argument,
+    Accepts one or more SQL or YAML file paths as command line arguments,
     extracts columns from the SQL model, and reorders the corresponding
     YAML schema file to match.
     """
     parser = argparse.ArgumentParser(
         description="Reorder dbt YAML columns to match SQL column order"
     )
-    parser.add_argument("file", help="Path to SQL or YAML file")
+    parser.add_argument("files", nargs="+", help="Path(s) to SQL or YAML file(s)")
     parser.add_argument(
         "--dialect",
         default=DEFAULT_DIALECT,
@@ -181,85 +181,52 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    input_file = args.file
     dialect = args.dialect
+    any_file_reordered = False
 
-    try:
-        # Handle both .sql and .yml inputs
-        if input_file.endswith(".yml") or input_file.endswith(".yaml"):
-            yaml_file = input_file
-            sql_file = input_file.replace(".yml", ".sql").replace(".yaml", ".sql")
-        else:
-            sql_file = input_file
-            yaml_file = input_file.replace(".sql", ".yml")
-
-        # Check if files exist
-        if not Path(sql_file).exists():
-            print(f"Error: SQL file not found: {sql_file}", file=sys.stderr)
-            sys.exit(1)
-        if not Path(yaml_file).exists():
-            # Don't print warning, just exit silently (file might not have YAML yet)
-            sys.exit(0)
-
-        # Read SQL file
+    for input_file in args.files:
         try:
-            with open(sql_file) as f:
-                sql = f.read()
-        except IOError as e:
-            print(f"Error: Cannot read SQL file {sql_file}: {e}", file=sys.stderr)
-            sys.exit(1)
+            # Determine SQL and YAML file paths from the input file
+            if input_file.endswith((".yml", ".yaml")):
+                yaml_file_path = Path(input_file)
+                sql_file_path = yaml_file_path.with_suffix(".sql")
+            else:
+                sql_file_path = Path(input_file)
+                yaml_file_path = sql_file_path.with_suffix(".yml")
 
-        # Clean and parse SQL
-        try:
+            # Check if both paired files exist before proceeding
+            if not sql_file_path.exists():
+                # Silently skip if the corresponding SQL file doesn't exist
+                continue
+            if not yaml_file_path.exists():
+                # Silently skip if there's no schema file to reorder
+                continue
+
+            # Read SQL file
+            sql = sql_file_path.read_text()
+
+            # Clean and parse SQL to get column order
             cleaned_sql = clean_sql(sql)
             sql_columns = extract_sql_columns(cleaned_sql, dialect)
-        except sqlglot.errors.ParseError as e:
-            print(f"Error: Cannot parse SQL in {sql_file}", file=sys.stderr)
-            print(f"Parse error: {e}", file=sys.stderr)
-            sys.exit(1)
+
+            if not sql_columns:
+                # Silently skip if no columns were found in the SQL
+                continue
+
+            # Reorder the YAML file and set the flag if changes were made
+            if reorder_yaml_columns(str(yaml_file_path), sql_columns):
+                print(f"✓ Reordered {len(sql_columns)} columns in {yaml_file_path}")
+                any_file_reordered = True
+
         except Exception as e:
-            print(f"Error: Unexpected error while parsing SQL: {e}", file=sys.stderr)
-            sys.exit(1)
+            print(f"Error processing {input_file}: {e}", file=sys.stderr)
+            continue
 
-        if not sql_columns:
-            print(f"Warning: No columns found in {sql_file}", file=sys.stderr)
-            sys.exit(0)
-
-        # Reorder YAML
-        try:
-            was_reordered = reorder_yaml_columns(yaml_file, sql_columns)
-            if was_reordered:
-                print(f"✓ Reordered {len(sql_columns)} columns in {yaml_file}")
-                sys.exit(1)  # Exit with 1 so pre-commit shows it modified files
-            else:
-                # Exit silently with success - already in correct order
-                sys.exit(0)
-        except FileNotFoundError:
-            # YAML file doesn't exist - that's okay
-            sys.exit(0)
-        except yaml.YAMLError as e:
-            print(f"Error: Invalid YAML in {yaml_file}: {e}", file=sys.stderr)
-            sys.exit(1)
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-        except IOError as e:
-            print(f"Error: Cannot write to {yaml_file}: {e}", file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(
-                f"Error: Unexpected error while processing YAML: {e}", file=sys.stderr
-            )
-            sys.exit(1)
-
-        sys.exit(0)
-
-    except KeyboardInterrupt:
-        print("\nInterrupted by user", file=sys.stderr)
-        sys.exit(130)
-    except Exception as e:
-        print(f"Error: Unexpected error: {e}", file=sys.stderr)
-        sys.exit(1)
+    # After processing all files, exit with the appropriate code
+    if any_file_reordered:
+        sys.exit(1)  # Exit 1 to signal to pre-commit that files were modified
+    else:
+        sys.exit(0)  # Exit 0 for success with no changes
 
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 import pytest
+import subprocess
+import sys
 from pathlib import Path
 import shutil
 import tempfile
@@ -61,3 +63,53 @@ class TestSimpleReorder:
         finally:
             # Clean up temp file
             Path(tmp_yaml).unlink()
+
+
+class TestMultipleFileHandling:
+    """Tests for handling multiple file inputs by running the script as a subprocess."""
+
+    def test_processes_multiple_files_from_fixtures(self, tmp_path):
+        """
+        Verify that the script can process multiple fixture files in one run.
+        It copies fixtures to a temporary directory to avoid modifying them.
+        """
+        # 1. --- SETUP ---
+        # Copy the fixture files to a temporary directory so the script can modify them.
+        shutil.copy(FIXTURES_DIR / "multi_1.sql", tmp_path)
+        shutil.copy(FIXTURES_DIR / "multi_1.yml", tmp_path)
+        shutil.copy(FIXTURES_DIR / "multi_2.sql", tmp_path)
+        shutil.copy(FIXTURES_DIR / "multi_2.yml", tmp_path)
+
+        sql1_path = tmp_path / "multi_1.sql"
+        sql2_path = tmp_path / "multi_2.sql"
+        yml1_path = tmp_path / "multi_1.yml"
+        yml2_path = tmp_path / "multi_2.yml"
+
+        # 2. --- EXECUTION ---
+        # Run the script, passing both SQL fixture paths as arguments.
+        script_path = Path(__file__).parent.parent / "yaml_reorder.py"
+        process = subprocess.run(
+            [sys.executable, str(script_path), str(sql1_path), str(sql2_path)],
+            capture_output=True,
+            text=True,
+        )
+
+        # 3. --- ASSERTION ---
+        # Check that the script exited with code 1 (signaling a change)
+        assert (
+            process.returncode == 1
+        ), "Script should exit with 1 when files are changed"
+
+        # Verify Pair 1 is now correctly ordered
+        reordered_yml1 = read_yaml_file(str(yml1_path))
+        new_order1 = [col["name"] for col in reordered_yml1["models"][0]["columns"]]
+        assert new_order1 == ["id", "name"], "Pair 1 should be reordered"
+
+        # Verify Pair 2 is also correctly ordered
+        reordered_yml2 = read_yaml_file(str(yml2_path))
+        new_order2 = [col["name"] for col in reordered_yml2["models"][0]["columns"]]
+        assert new_order2 == [
+            "event_id",
+            "event_name",
+            "event_date",
+        ], "Pair 2 should be reordered"
