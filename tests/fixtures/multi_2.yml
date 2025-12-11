@@ -1,0 +1,7 @@
+---
+models:
+    - name: events
+      columns:
+          - name: event_date
+          - name: event_id
+          - name: event_name
