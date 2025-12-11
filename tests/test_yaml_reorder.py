@@ -113,3 +113,45 @@ class TestMultipleFileHandling:
             "event_name",
             "event_date",
         ], "Pair 2 should be reordered"
+
+
+class TestMultilineDescriptions:
+    """Test that multi-line descriptions are preserved correctly"""
+
+    def test_multiline_descriptions_from_fixtures(self, tmp_path):
+        """Test multi-line descriptions using fixture files"""
+
+        # Copy fixtures
+        shutil.copy(FIXTURES_DIR / "multiline.yml", tmp_path)
+        shutil.copy(FIXTURES_DIR / "multiline.sql", tmp_path)
+
+        sql_path = tmp_path / "multiline.sql"
+        yml_path = tmp_path / "multiline.yml"
+
+        # Read SQL and extract columns
+        with open(sql_path) as f:
+            sql = f.read()
+        cleaned = clean_sql(sql)
+        columns = extract_sql_columns(cleaned, dialect="bigquery")
+
+        # Reorder
+        reorder_yaml_columns(str(yml_path), columns)
+
+        # Verify no escaped newlines
+        with open(yml_path) as f:
+            content = f.read()
+
+        assert "\\n" not in content, "Should not contain escaped newlines"
+        assert "description: |" in content, "Should preserve block scalar notation"
+
+        # Verify content is preserved
+        reordered = read_yaml_file(str(yml_path))
+        notes_desc = next(
+            c["description"]
+            for c in reordered["models"][0]["columns"]
+            if c["name"] == "notes"
+        )
+        assert (
+            notes_desc.count("\n") >= 2
+        ), "Multi-line description should contain newlines"
+        assert "multiple lines" in notes_desc

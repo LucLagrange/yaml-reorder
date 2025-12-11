@@ -1,0 +1,13 @@
+---
+version: 2
+
+models:
+    - name: users
+      columns:
+          - name: notes
+            description: |
+                This is a very long description that spans
+                multiple lines and contains important information
+                about the column that should be preserved exactly.
+          - name: id
+            description: Primary key
