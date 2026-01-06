@@ -28,10 +28,6 @@ jobs:
             - name: Install the project
               run: uv sync --locked --all-extras --dev
 
-            - name: Install package
-              run: |
-                  pip install -e .
-
             - name: Run tests
               run: |
                   pytest tests/test_yaml_reorder.py -v
