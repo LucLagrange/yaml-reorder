@@ -9,3 +9,8 @@ repos:
       hooks:
           - id: yamlfmt
             name: YAML Formatting
+    - repo: https://github.com/astral-sh/uv-pre-commit
+      rev: 0.9.22
+      hooks:
+          - id: uv-lock
+            name: Ensure uv.lock file is up to date

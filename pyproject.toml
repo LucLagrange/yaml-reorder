@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yaml-reorder"
+version = "0.1.0"
+description = "Aligns the order of the columns between dbt models and their configuration files."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ruamel-yaml==0.19.0",
+    "sqlglot==28.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "black",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yaml_reorder"]

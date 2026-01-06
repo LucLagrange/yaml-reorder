@@ -87,7 +87,7 @@ class TestMultipleFileHandling:
 
         # 2. --- EXECUTION ---
         # Run the script, passing both SQL fixture paths as arguments.
-        script_path = Path(__file__).parent.parent / "yaml_reorder.py"
+        script_path = Path(__file__).parent.parent / "src" / "yaml_reorder" / "yaml_reorder.py"
         process = subprocess.run(
             [sys.executable, str(script_path), str(sql1_path), str(sql2_path)],
             capture_output=True,
